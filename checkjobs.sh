@@ -30,10 +30,10 @@ blacklist="(/usr/local/cpanel/|/var/cpanel|daily|monthly|hourly|weekly|run-parts
 #Now time to cat all -1 level finded in our cron directory files 
 #and remove spaces&tabs from line start | find lines starting from *, @ and 0-9,
 #filter the output, then count lines.
-activelines=$(cat `find $path -maxdepth 1 -type f` | sed 's/^[ \t]*//' | egrep ^'(\*|[0-9]|@)' | awk $exp0 | grep $expN | egrep -shi -v $blacklist | egrep -v $expEXC | wc -l)
+activelines=$(find $path -maxdepth 1 -type f -exec cat {} \; | sed 's/^[ \t]*//' | egrep ^'(\*|[0-9]|@)' | awk $exp0 | grep $expN | egrep -shi -v $blacklist | egrep -v $expEXC | wc -l)
 
 #CHECK /etc section:
-unlist="(anacron|apt*|dpkg*|yum*|*rpm*|upstart|logr*|passwd|man-*|*locate|ntp|bsd*|*trim)"
+unlist="(0hourly|sysstat|raid-*|anacron|apt*|dpkg*|yum*|*rpm*|upstart|logr*|passwd|man-*|*locate|ntp|bsd*|*trim)"
 sysfilter () { #shorten grep to function
 egrep -shi -v $unlist
 }
@@ -41,23 +41,28 @@ egrep -shi -v $unlist
 exp4fnd="! -type d ! -name .placeholder ! -name 0anacron"
 #run encounter if directory exists, use 0 variable if not
 if [ -d '/etc/cron.daily/' ]; then
-daily=$(find /etc/cron.daily/ $exp4fnd | sysfilter | wc -l) 
+dailyt=$(find /etc/cron.daily/ $exp4fnd | sysfilter) 
+daily=$(find /etc/cron.daily/ $exp4fnd | sysfilter|wc -l) 
 else daily=0 
 fi
 if [ -d '/etc/cron.hourly/' ]; then
-hourly=$(find /etc/cron.hourly/ $exp4fnd | sysfilter | wc -l) 
+hourlyt=$(find /etc/cron.hourly/ $exp4fnd | sysfilter) 
+hourly=$(find /etc/cron.hourly/ $exp4fnd | sysfilter|wc -l)
 else hourly=0
 fi
 if [ -d '/etc/cron.weekly/' ]; then
-weekly=$(find /etc/cron.weekly/ $exp4fnd | sysfilter | wc -l) 
+weeklyt=$(find /etc/cron.weekly/ $exp4fnd | sysfilter)
+weekly=$(find /etc/cron.weekly/ $exp4fnd | sysfilter|wc -l)
 else weekly=0
 fi
 if [ -d '/etc/cron.monthly/' ]; then
-monthly=$(find /etc/cron.monthly/ $exp4fnd | sysfilter | wc -l) 
+monthlyt=$(find /etc/cron.monthly/ $exp4fnd | sysfilter) 
+monthly=$(find /etc/cron.monthly/ $exp4fnd | sysfilter|wc -l)
 else monthly=0
 fi
 if [ -d '/etc/cron.d/' ]; then
-d=$(find /etc/cron.d/ $exp4fnd | sysfilter | wc -l) 
+dt=$(find /etc/cron.d/ $exp4fnd | sysfilter) 
+d=$(find /etc/cron.d/ $exp4fnd | sysfilter|wc -l)
 else d=0
 fi
 #0hourly check lines
@@ -65,10 +70,17 @@ if [ -f '/etc/cron.d/0hourly' ]; then
 hrl=$(cat /etc/cron.d/0hourly | sed 's/^[ \t]*//' | egrep ^'(\*|[0-9]|@)' | awk $exp0 | grep $expN | egrep -shi -v $blacklist | egrep -v $expEXC | wc -l)
 else hrl=0
 fi
+echo -e "\n" cron.d: "\n""$dt"
+echo -e "\n" monthly: "\n""$monthlyt"
+echo -e "\n" hourly:"\n""$hourlyt"
+echo -e "\n" weekly:"\n""$weeklyt"
+echo -e "\n" daily:"\n""$dailyt"
+
 #SUM all parts
 activescripts=$((daily + hourly + monthly + weekly + d + hrl))
 #DISPLAY count of files in /etc/cron.* subfolders:
-echo -en from etc : $activescripts tasks! '\n'
+echo -e "\n" from etc : "$activescripts" tasks! "\n"
+
 
 #DISPLAY count of /var/spool/cron/* section:
 	server=$(hostname)
